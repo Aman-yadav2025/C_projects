@@ -4,7 +4,7 @@
 #include<unistd.h>
 #include<sys/wait.h>
 #include<signal.h>
-#include<fnctl.h>
+#include<fcntl.h>
 
 
 void handle_sigint(int sig){//signal handle
@@ -56,12 +56,50 @@ int main(){
             }
             continue;
         }
+        char* outfile = NULL;
+        char* infile = NULL;
+        for(int j =0; j < i;j++){
+            if(strcmp(args[j],">") == 0){
+                outfile = args[j+1];
+                args[j] = NULL;
+                break;
+            }
+            else if(strcmp(args[j],"<") == 0){
+                infile =args[j+1];
+                args[j] = NULL;
+                break;
+            }
+        }
         pid_t pid = fork();
         if(pid<0){
             perror("fork failed ! \n");
         }
         else if (pid == 0){
             //fork successful child is now running
+            signal(SIGINT,SIG_DFL);
+            //open file for writng : step 1 create file if it doesn't exist O_create;
+            //step 2 truncate file to 0 if it already exists O_trunc
+            //step 3 open file for writing O_WRONLY;
+            //step 4 set permission for read and write for user 0644;
+            if(outfile != NULL){
+            int fd = open(outfile,O_CREAT | O_TRUNC | O_WRONLY,0644);
+            if(fd< 0){
+                perror("Failed to open outfile !\n");
+                exit(1);
+            }
+            dup2(fd,STDOUT_FILENO);
+            close(fd);
+        }
+            if(infile !=NULL){
+                int fd = open(infile,O_RDONLY);
+                if(fd<0){
+                    perror("Failed to open infile !\n");
+                    exit(1);
+                }
+                dup2(fd,STDIN_FILENO);
+                close(fd);
+            }
+
             if(execvp(args[0],args) == -1){ // execution failed
                 printf("%s: Command Not Found ! \n",args[0]);
             }

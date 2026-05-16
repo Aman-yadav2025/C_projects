@@ -4,6 +4,8 @@
 #include<unistd.h>
 #include<sys/wait.h>
 #include<signal.h>
+#include<fnctl.h>
+
 
 void handle_sigint(int sig){//signal handle
     char cwd[1024];

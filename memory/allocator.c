@@ -22,6 +22,15 @@ Block* find_free_block(Block** last, size_t size){
         *last = current;
         current = current->next;
     }
+    Block* split;
+    if(current && current->size > size + BLOCK_SIZE){//check for left over space
+        split = (Block*)((char*)current + BLOCK_SIZE + size);//convert the current pointer to char to have exact byte address
+        split->size = current->size - size - BLOCK_SIZE;
+        split->is_free =1;
+        split->next = current->next;//pointers adjustment for the split block
+        current->size = size;
+        current->next = split;
+    }
     return current;
 }
 

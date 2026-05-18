@@ -74,11 +74,49 @@ void* my_malloc(size_t size){
     return (void*)(block+1);//returns memory address where data will be stored
 }
 
+void* my_calloc(size_t num, size_t size){
+    size_t total_size = num * size;
+    if(total_size <= 0) return NULL;//fail safe
+
+    void* ptr = my_malloc(total_size);
+    if(ptr == NULL) return NULL;//fail safe
+
+    memset(ptr, 0,total_size);
+    return ptr;
+}
+
 void my_free(void* ptr){
     if(ptr == NULL) return;//fail safe
     Block* block = (Block*)ptr -1;//move back from the storage area to the header to get the block metadata
     block->is_free = 1;//free the block size of the block remains the same, but it is now marked as free
     return;
+}
+
+void* my_realloc(void* ptr, size_t size){
+    if(ptr == NULL) return my_malloc(size);
+    if(size <= 0) {//fail safe
+        my_free(ptr);
+        return NULL;
+    }
+    Block* block = (Block*)ptr -1;//mvoe to the header
+    if(block->size >= size) {
+        // --- FIX 3: Added Splitting Optimization here ---
+        if (block->size > size + BLOCK_SIZE) {
+            Block* split = (Block*)((char*)block + BLOCK_SIZE + size);
+            split->size = block->size - size - BLOCK_SIZE;
+            split->is_free = 1;
+            split->next = block->next;
+            block->size = size;
+            block->next = split;
+        }
+        return ptr;
+    }
+
+    void* new_ptr = my_malloc(size);
+    if(new_ptr == NULL) return NULL;//fail safe
+    memcpy(new_ptr, ptr, block->size);
+    my_free(ptr);
+    return new_ptr;
 }
 
 void debug_heap() {

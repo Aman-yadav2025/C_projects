@@ -17,20 +17,34 @@ void* global_head = NULL;
 
 Block* find_free_block(Block** last, size_t size){
     Block* current = (Block*)global_head;
-    while(current){//check current fail safe
+    Block* best_fit = NULL; // Initialize best fit block pointer
+    size_t diff = -1; // Initialize difference to maximum possible value size_t = -1 assigns maxmium value beacuse it's unsigned it 
+    // meaning it can't be negative and assigning -1 to it cause it to underflow and wrap around to give max value
+
+    while(current){//check current fail safe can't find free memory block
         if(current->is_free){//if current is free
-            while(current->next && current->next->is_free){//if next shell is also free merge the two blocks
+            while(current->next && current->next->is_free){//if next shell is also free merge the two blocks keep merging until we find a block that is not free or we reach the end of the list
                 current->size += current->next->size + BLOCK_SIZE;//move to the next block
                 current->next = current->next->next;//skip the next block since it is also free
             }
-            if(current->size >= size) break;//found a free block that is big enough
+            if(current->size >= size) {
+                size_t current_diff = current->size - size;
+                if(current_diff == 0){
+                    best_fit = current; // Perfect fit
+                    break;
+                }
+                else if(current_diff < diff) {
+                    diff = current_diff;
+                    best_fit = current; // Better fit found
+                }
+            }
         }
         *last = current;// update the last pointer to the current block
         current = current->next;//move to the next block
     }
-    Block* split;
     if(current && current->size > size + BLOCK_SIZE){//check for left over space
-        split = (Block*)((char*)current + BLOCK_SIZE + size);//convert the current pointer to char to have exact byte address
+        Block* split;
+        split = (Block*)((char*)(current+1)+ size);//convert the current pointer to char to have exact byte address
         split->size = current->size - size - BLOCK_SIZE;
         split->is_free =1;
         split->next = current->next;//pointers adjustment for the split block
@@ -55,6 +69,7 @@ Block *request_space(Block* last,size_t size){
 
 void* my_malloc(size_t size){
     if(size <= 0) return NULL;//fail safe
+    size = ((size + 7) / 8) * 8;//align the size to 8 bytes for better performance cache in cpu reads memory in chunks of 8 bytes, so aligning the size to 8 bytes can improve performance by reducing fragmentation and ensuring that memory accesses are efficient. This is done by rounding up the requested size to the nearest multiple of 8 bytes, which can be achieved by dividing the size by 8, adding 1, and then multiplying back by 8. This way, we ensure that all allocated blocks are properly aligned in memory.
     Block* block;
     if(global_head == NULL){//checks for the first time if there is no block in the heap, if there is no block, then we need to request space for the first block
         block = request_space(NULL, size);//request space last pointer is NULL and size is requested size
@@ -99,6 +114,7 @@ void* my_realloc(void* ptr, size_t size){
         return NULL;
     }
     Block* block = (Block*)ptr -1;//mvoe to the header
+    size = ((size + 7) / 8) * 8;
     if(block->size >= size) {
         // --- FIX 3: Added Splitting Optimization here ---
         if (block->size > size + BLOCK_SIZE) {

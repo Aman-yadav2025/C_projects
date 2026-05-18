@@ -17,10 +17,16 @@ void* global_head = NULL;
 
 Block* find_free_block(Block** last, size_t size){
     Block* current = (Block*)global_head;
-    // if current is null or current is not free or current size is less than size, then loop
-    while(current && !(current->is_free && current->size >= size)){
-        *last = current;
-        current = current->next;
+    while(current){//check current fail safe
+        if(current->is_free){//if current is free
+            while(current->next && current->next->is_free){//if next shell is also free merge the two blocks
+                current->size += current->next->size + BLOCK_SIZE;//move to the next block
+                current->next = current->next->next;//skip the next block since it is also free
+            }
+            if(current->size >= size) break;//found a free block that is big enough
+        }
+        *last = current;// update the last pointer to the current block
+        current = current->next;//move to the next block
     }
     Block* split;
     if(current && current->size > size + BLOCK_SIZE){//check for left over space

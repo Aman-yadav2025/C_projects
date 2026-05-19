@@ -1,0 +1,19 @@
+here what we are doing is we are parting our single c files into many different files 
+to do so we have the following structure 
+
+
+project contains one single file main.c and two folders includes and src
+in includes we have headers 
+in src we have source code
+
+
+in C to start a header write 
+#ifndef HEADER_NAME_INCAPS_H
+#define HEADER_NAME_INCAPS_H
+// what ever function you want only names
+#endif
+
+in .C files include the header and write the function
+import the headers in the main.c do not need relative paths take care during compling
+
+to compile write as follow gcc -I ./includes src/*.cpp -o fileName

@@ -1,6 +1,4 @@
 #include "chip-8.h"
-#include <string.h>
-#include<stdlib.h>
 
 
 // The 80-byte master font set containing characters 0 through F

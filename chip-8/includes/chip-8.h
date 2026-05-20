@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define MEMORY_SIZE 4096 // 4096 bytes of memory because the original chip-8 harware is limited to 4k memory
 #define REGISTER_COUNT 16 // 16 registers because the jumping bytes are 4 and hence can also be used to store 16 values (0-15)
@@ -28,9 +31,9 @@ typedef struct{
 
 void Chip8_init(Chip8* chip8);
 
-int Chip8_ROM_Loader(Chip8* chip8, const char* filename);
+int Chip8_ROM_LOADER(Chip8* chip8, const char* filename);
 
-void Chip8_cycle(Chip8* chip8)
+void Chip8_cycle(Chip8* chip8);
 
 
 #endif

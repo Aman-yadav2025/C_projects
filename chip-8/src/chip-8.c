@@ -89,6 +89,7 @@ void Chip8_cycle(Chip8* chip8){
                 default://sys call - ignored in modern implementations 
                     break;
             }
+        break;
 
         case 0x1000://jump to address NNN
             chip8->pc = NNN;
@@ -128,18 +129,18 @@ void Chip8_cycle(Chip8* chip8){
         
         case 0x8000: //arithmetic and Logic operations
             switch(N){
-                case 0x0000: //set VX to the value of VY
+                case 0x0: //set VX to the value of VY
                     chip8->V[X] = chip8->V[Y];
                     break;
-                case 0x1: taking or
+                case 0x1: //taking or
                     chip8->V[X] |= chip8->V[Y];
                     break;
                 
-                case 0x2: taking and
+                case 0x2: //taking and
                     chip8->V[X] &= chip8->V[Y];
                     break;
                 
-                case 0x3: taking xor
+                case 0x3: //taking xor
                     chip8->V[X] ^= chip8->V[Y];
                     break;
 
@@ -206,14 +207,17 @@ void Chip8_cycle(Chip8* chip8){
                 chip8->V[0xF] = 0; // reset VF to 0 before drawing the sprite
 
                 for(int row = 0; row < N; row++){
+                    if(y + row >= DISPLAY_HEIGHT) break; // stop drawing if we go beyond the display height
                     uint8_t sprite_byte = chip8->memory[chip8->I + row]; // read each byte of the sprite from memory starting at address I
                     for(int col = 0; col < 8; col++){
-                        if((sprite_byte & (0x80 >> col)) != 0){ // check if the current bit in the sprite byte is set
-                            uint16_t display_index = ((y + row) % DISPLAY_HEIGHT) * DISPLAY_WIDTH + ((x + col) % DISPLAY_WIDTH); // calculate the index in the display array, wrapping around if necessary
-                            if(chip8->display[display_index] == 1){ // check if the pixel on the display is currently set
+                        if(x + col >= DISPLAY_WIDTH) break; // stop drawing if we go beyond the display width
+                        uint8_t sprite_pixel = (sprite_byte >> (7 - col)) & 0x1; // get the current pixel from the sprite byte by shifting and masking
+                        unsigned int screen_index = ((y+row)) * DISPLAY_WIDTH + ((x + col)); // calculate the index in the display array, wrapping around if necessary
+                        if((sprite_pixel) == 1){ // check if the current bit in the sprite byte is set
+                            if(chip8->display[screen_index] == 1){ // check if the pixel on the display is currently set
                                 chip8->V[0xF] = 1; // set VF to 1 if a pixel is flipped from set to unset
                             }
-                            chip8->display[display_index] ^= 1; // flip the pixel on the display using XOR
+                            chip8->display[screen_index] ^= 1; // flip the pixel on the display using XOR
                         }
                     }
                 }
@@ -247,11 +251,11 @@ void Chip8_cycle(Chip8* chip8){
                             key_pressed = 1; // set the flag to indicate a key has been pressed
                             break; // exit the loop once a key press is detected
                         }
+                    }
                         //if no key is pressed go back to the previous instruction and check again in the next cycle
                         if(!key_pressed){
                             chip8->pc -= 2;
                         }
-                    }
                 }
                 break;
 
@@ -268,7 +272,7 @@ void Chip8_cycle(Chip8* chip8){
                     break;
 
                 case 0x29: //set memory layout of the fornt character in VX.
-                    chip8->I = 0x050 + chip8->V[x] * 5; // each character is 5 bytes long, so we multiply the character index by 5 to get the correct memory address
+                    chip8->I = 0x050 + chip8->V[X] * 5; // each character is 5 bytes long, so we multiply the character index by 5 to get the correct memory address
                     break;
 
                 case 0x33: // binary coded decimal conversion.
@@ -278,17 +282,25 @@ void Chip8_cycle(Chip8* chip8){
                     break;
 
                 case 0x55: // store registers V0 through VX in memory starting at address I. I is set to I + X + 1 after operation
-                    for(int i =0; i<= X; i++){
-                        chip8->memory[chip8->I + i] = chip8->V[i]; // store the value of register Vi in memory starting at address I
+                {    
+                for(int i =0; i<= X; i++){
+                        chip8->memory[chip8->I + i] = chip8->V[i];// store the value of register Vi in memory starting at address I
                     }
+                    chip8->I += X + 1; // increment I by X + 1 after storing the registers in memory
+                }
                     break;
                 
+                
                 case 0x65: // read registers V0 through VX from memory starting at address I. I is set to I + X + 1 after operation
-                    for(int i =0; i<= X; i++){
+                {    
+                for(int i =0; i<= X; i++){
                         chip8->V[i] = chip8->memory[chip8->I + i]; // read the value from memory starting at address I and store it in register Vi
                     }
+                    chip8->I += X + 1; // increment I by X + 1 after reading the registers from memory
+                }
                     break;
             }
+            break;
         
         default:
             printf("Unknown or unimplemented opcode: 0x%X\n", opcode);
